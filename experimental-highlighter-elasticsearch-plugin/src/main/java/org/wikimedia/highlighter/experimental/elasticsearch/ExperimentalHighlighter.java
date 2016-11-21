@@ -11,19 +11,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.automaton.RegExp;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.text.Text;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.LocaleUtils;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.search.fetch.FetchPhaseExecutionException;
-import org.elasticsearch.search.highlight.HighlightField;
-import org.elasticsearch.search.highlight.Highlighter;
-import org.elasticsearch.search.highlight.HighlighterContext;
-import org.elasticsearch.search.highlight.SearchContextHighlight.FieldOptions;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
+import org.elasticsearch.search.fetch.subphase.highlight.Highlighter;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlighterContext;
+import org.elasticsearch.search.fetch.subphase.highlight.SearchContextHighlight.FieldOptions;
 import org.wikimedia.highlighter.experimental.lucene.hit.AutomatonHitEnum;
 import org.wikimedia.highlighter.experimental.lucene.hit.weight.BasicQueryWeigher;
 import org.wikimedia.search.highlighter.experimental.HitEnum;
@@ -53,7 +53,7 @@ public class ExperimentalHighlighter implements Highlighter {
     public static final String NAME = "experimental";
     private static final String CACHE_KEY = "highlight-experimental";
     private static final Text EMPTY_STRING = new Text("");
-    private static final ESLogger log = ESLoggerFactory.getLogger(ExperimentalHighlighter.class.getName());
+    private static final Logger log = ESLoggerFactory.getLogger(ExperimentalHighlighter.class);
 
     @Override
     public boolean canHighlight(FieldMapper field) {

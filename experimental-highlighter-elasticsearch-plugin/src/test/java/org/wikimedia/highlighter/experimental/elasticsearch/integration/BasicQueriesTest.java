@@ -18,8 +18,9 @@ import static org.hamcrest.Matchers.equalTo;
 
 import java.io.IOException;
 
-import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder.FilterFunctionBuilder;
 import org.junit.Test;
 import org.wikimedia.highlighter.experimental.elasticsearch.AbstractExperimentalHighlighterIntegrationTestBase;
 
@@ -32,9 +33,8 @@ public class BasicQueriesTest extends AbstractExperimentalHighlighterIntegration
         buildIndex();
         indexTestData();
 
-        SearchRequestBuilder search = testSearch();
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(termQuery("test", "test"), hitSource(hitSource)).get();
             assertHighlight(response, 0, "test", 0, equalTo("tests very simple <em>test</em>"));
         }
     }
@@ -43,11 +43,9 @@ public class BasicQueriesTest extends AbstractExperimentalHighlighterIntegration
     public void boolOfTermQueries() throws IOException {
         buildIndex();
         indexTestData();
-
-        SearchRequestBuilder search = testSearch(boolQuery().must(termQuery("test", "test")).must(
-                termQuery("test", "simple")));
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(boolQuery().must(termQuery("test", "test")).must(
+                    termQuery("test", "simple")), hitSource(hitSource)).get();
             assertHighlight(response, 0, "test", 0,
                     equalTo("tests very <em>simple</em> <em>test</em>"));
         }
@@ -58,9 +56,8 @@ public class BasicQueriesTest extends AbstractExperimentalHighlighterIntegration
         buildIndex();
         indexTestData();
 
-        SearchRequestBuilder search = testSearch(fuzzyQuery("test", "test"));
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(fuzzyQuery("test", "test"), hitSource(hitSource)).get();
             assertHighlight(response, 0, "test", 0,
                     equalTo("<em>tests</em> very simple <em>test</em>"));
         }
@@ -71,9 +68,8 @@ public class BasicQueriesTest extends AbstractExperimentalHighlighterIntegration
         buildIndex();
         indexTestData();
 
-        SearchRequestBuilder search = testSearch(rangeQuery("test").from("teso").to("tesz"));
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(rangeQuery("test").from("teso").to("tesz"), hitSource(hitSource)).get();
             assertHighlight(response, 0, "test", 0,
                     equalTo("<em>tests</em> very simple <em>test</em>"));
         }
@@ -84,15 +80,13 @@ public class BasicQueriesTest extends AbstractExperimentalHighlighterIntegration
         buildIndex();
         indexTestData();
 
-        SearchRequestBuilder search = testSearch(wildcardQuery("test", "te?t"));
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(wildcardQuery("test", "te?t"), hitSource(hitSource)).get();
             assertHighlight(response, 0, "test", 0, equalTo("tests very simple <em>test</em>"));
         }
 
-        search = testSearch(wildcardQuery("test", "te*"));
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(wildcardQuery("test", "te*"), hitSource(hitSource)).get();
             assertHighlight(response, 0, "test", 0,
                     equalTo("<em>tests</em> very simple <em>test</em>"));
         }
@@ -103,9 +97,8 @@ public class BasicQueriesTest extends AbstractExperimentalHighlighterIntegration
         buildIndex();
         indexTestData();
 
-        SearchRequestBuilder search = testSearch(regexpQuery("test", "tests?"));
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(regexpQuery("test", "tests?"), hitSource(hitSource)).get();
             assertHighlight(response, 0, "test", 0,
                     equalTo("<em>tests</em> very simple <em>test</em>"));
         }
@@ -116,9 +109,8 @@ public class BasicQueriesTest extends AbstractExperimentalHighlighterIntegration
         buildIndex();
         indexTestData();
 
-        SearchRequestBuilder search = testSearch(spanTermQuery("test", "test"));
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(spanTermQuery("test", "test"), hitSource(hitSource)).get();
             assertHighlight(response, 0, "test", 0, equalTo("tests very simple <em>test</em>"));
         }
     }
@@ -128,9 +120,8 @@ public class BasicQueriesTest extends AbstractExperimentalHighlighterIntegration
         buildIndex();
         indexTestData();
 
-        SearchRequestBuilder search = testSearch(spanFirstQuery(spanTermQuery("test", "test"), 5));
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(spanFirstQuery(spanTermQuery("test", "test"), 5), hitSource(hitSource)).get();
             // Note that we really don't respect the spans - we basically just
             // convert it into a term query
             assertHighlight(response, 0, "test", 0, equalTo("tests very simple <em>test</em>"));
@@ -142,10 +133,12 @@ public class BasicQueriesTest extends AbstractExperimentalHighlighterIntegration
         buildIndex();
         indexTestData();
 
-        SearchRequestBuilder search = testSearch(spanNearQuery().slop(5)
-                .clause(spanTermQuery("test", "tests")).clause(spanTermQuery("test", "test")));
+        
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(
+                    spanNearQuery(spanTermQuery("test", "tests"), 5)
+                        .addClause(spanTermQuery("test", "tests")), 
+                    hitSource(hitSource)).get();
             // Note that we really don't respect the spans - we basically just
             // convert it into a term query
             assertHighlight(response, 0, "test", 0,
@@ -158,10 +151,10 @@ public class BasicQueriesTest extends AbstractExperimentalHighlighterIntegration
         buildIndex();
         indexTestData();
 
-        SearchRequestBuilder search = testSearch(spanNotQuery().include(
-                spanTermQuery("test", "test")).exclude(spanTermQuery("test", "tests")));
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(
+                    spanNotQuery(spanTermQuery("test", "test"), spanTermQuery("test", "tests")),
+                    hitSource(hitSource)).get();
             // Note that we really don't respect the spans - we basically just
             // convert it into a term query
             assertHighlight(response, 0, "test", 0, equalTo("tests very simple <em>test</em>"));
@@ -173,10 +166,10 @@ public class BasicQueriesTest extends AbstractExperimentalHighlighterIntegration
         buildIndex();
         indexTestData();
 
-        SearchRequestBuilder search = testSearch(spanOrQuery()
-                .clause(spanTermQuery("test", "test")).clause(spanTermQuery("test", "tests")));
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(
+                    spanOrQuery(spanTermQuery("test", "test"))
+                        .addClause(spanTermQuery("test", "tests")), hitSource(hitSource)).get();
             // Note that we really don't respect the spans - we basically just
             // convert it into a term query
             assertHighlight(response, 0, "test", 0,
@@ -190,9 +183,8 @@ public class BasicQueriesTest extends AbstractExperimentalHighlighterIntegration
         client().prepareIndex("test", "test", "1").setSource("test", "test", "bar", 2).get();
         refresh();
 
-        SearchRequestBuilder search = testSearch(functionScoreQuery(termQuery("test", "test")).add(fieldValueFactorFunction("bar")));
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(functionScoreQuery(termQuery("test", "test"), fieldValueFactorFunction("bar")), hitSource(hitSource)).get();
             assertHighlight(response, 0, "test", 0, equalTo("<em>test</em>"));
         }
     }
@@ -203,9 +195,16 @@ public class BasicQueriesTest extends AbstractExperimentalHighlighterIntegration
         client().prepareIndex("test", "test", "1").setSource("test", "test", "bar", 2).get();
         refresh();
 
-        SearchRequestBuilder search = testSearch(functionScoreQuery(termQuery("test", "test")).add(termQuery("test", "test"), fieldValueFactorFunction("bar")));
+        QueryBuilder fbuilder = functionScoreQuery(
+                        termQuery("test", "test"), 
+                        new FilterFunctionBuilder[]{
+                                new FilterFunctionBuilder(
+                                        termQuery("test", "test"),
+                                        fieldValueFactorFunction("bar")
+                                 )
+                        });
         for (String hitSource : HIT_SOURCES) {
-            SearchResponse response = setHitSource(search, hitSource).get();
+            SearchResponse response = testSearch(fbuilder, hitSource(hitSource)).get();
             assertHighlight(response, 0, "test", 0, equalTo("<em>test</em>"));
         }
     }

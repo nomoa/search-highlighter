@@ -41,9 +41,11 @@ public interface HitEnum extends Segment {
     int source();
 
     /**
-     * Inspects HitEnum structure and adds Graphviz nodes
-     * to the GraphvizHitEnumGenerator.
-     * @param generator the generator
+     * Inspects HitEnum structure and adds Graphviz nodes to the
+     * GraphvizHitEnumGenerator.
+     * 
+     * @param generator
+     *            the generator
      */
     void toGraph(GraphvizHitEnumGenerator generator);
 
